@@ -4,7 +4,15 @@ import { useState } from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-export default function ChatBox({ ringkasanData, tahunAktif }: { ringkasanData: string; tahunAktif: number }) {
+export default function ChatBox({
+  ringkasanData,
+  tahunAktif,
+  dataset = "utama",
+}: {
+  ringkasanData: string;
+  tahunAktif: number;
+  dataset?: "utama" | "prioritas" | "strategis" | "tkd";
+}) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +29,7 @@ export default function ChatBox({ ringkasanData, tahunAktif }: { ringkasanData: 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, ringkasanData, tahunAktif }),
+        body: JSON.stringify({ messages: next, ringkasanData, tahunAktif, dataset }),
       });
       const data = await res.json();
       if (data.error) {

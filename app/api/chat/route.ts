@@ -1,35 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { cariAnggaran } from "@/lib/search-data";
+import { cariGenerikKategori, cariGenerikTkd } from "@/lib/search-generic";
+import { getPrioritasData, getStrategisData, getTkdData } from "@/lib/data";
 
 const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 
+type Dataset = "utama" | "prioritas" | "strategis" | "tkd";
 type ChatMessage = { role: "user" | "assistant" | "system" | "tool"; content: string; tool_call_id?: string; name?: string };
 
-function toolDefinition(scopeKdsatker: number | null) {
+function toolDefinition(dataset: Dataset, scopeKdsatker: number | null) {
   const cakupan =
     scopeKdsatker === null
-      ? "Mencari & menjumlahkan pagu/realisasi anggaran di SELURUH data (semua kementerian & satker), "
+      ? "Mencari & menjumlahkan pagu/realisasi anggaran di SELURUH data yang relevan, "
       : "Mencari & menjumlahkan pagu/realisasi anggaran DI DALAM DATA SATKER INI SAJA (tidak bisa mengakses data satker lain), ";
+  const catatanTkd = dataset === "tkd" ? " Data ini khusus Transfer ke Daerah (per kabupaten/kota), tidak ada info per satker." : "";
   return {
     type: "function" as const,
     function: {
       name: "cari_anggaran",
       description:
         cakupan +
-        "berdasarkan kata kunci tema/program/kegiatan/output, dan opsional filter provinsi atau tahun. " +
-        "WAJIB dipakai untuk pertanyaan yang menyebutkan tema (mis. 'ketahanan pangan', 'kebakaran hutan'), " +
-        "lokasi/provinsi tertentu, atau kementerian/satker yang BUKAN yang sedang aktif di dashboard.",
+        "berdasarkan kata kunci tema/program/kegiatan/output/wilayah, dan opsional filter provinsi atau tahun." +
+        catatanTkd +
+        " WAJIB dipakai untuk pertanyaan yang menyebutkan tema, lokasi, atau satker/kabupaten yang BUKAN yang sedang aktif di dashboard.",
       parameters: {
         type: "object",
         properties: {
-          kata_kunci: { type: "array", items: { type: "string" }, description: "Kata kunci tema/program/kegiatan/output" },
-          provinsi: { type: "string", description: "Nama provinsi (opsional)" },
+          kata_kunci: { type: "array", items: { type: "string" }, description: "Kata kunci tema/program/kegiatan/output/wilayah" },
+          provinsi: { type: "string", description: "Nama provinsi (opsional, tidak berlaku utk dataset TKD)" },
           tahun_cari: { type: "integer", description: "Tahun anggaran (opsional, default tahun yang sedang dipilih)" },
         },
       },
     },
   };
+}
+
+async function jalankanTool(
+  dataset: Dataset,
+  args: Record<string, unknown>,
+  scopeKdsatker: number | null,
+  tahunAktif: number
+): Promise<Record<string, unknown>> {
+  switch (dataset) {
+    case "prioritas":
+      return cariGenerikKategori(getPrioritasData(), args, scopeKdsatker, tahunAktif);
+    case "strategis":
+      return cariGenerikKategori(getStrategisData(), args, scopeKdsatker, tahunAktif);
+    case "tkd":
+      return cariGenerikTkd(getTkdData(), args, tahunAktif);
+    default:
+      return cariAnggaran(args, scopeKdsatker, tahunAktif);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -45,11 +67,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { messages, ringkasanData, tahunAktif } = body as {
+  const { messages, ringkasanData, tahunAktif, dataset } = body as {
     messages: ChatMessage[];
     ringkasanData: string;
     tahunAktif: number;
+    dataset?: Dataset;
   };
+  const ds: Dataset = dataset || "utama";
 
   const scopeKdsatker = auth.role === "super" ? null : auth.kdsatker;
 
@@ -58,7 +82,7 @@ ringkas dan berbasis data. Konteks data yang sedang aktif di dashboard:
 
 ${ringkasanData}
 
-Kalau pertanyaan menyebut tema, lokasi/provinsi, atau kementerian/satker lain di luar yang sedang aktif,
+Kalau pertanyaan menyebut tema, lokasi/provinsi, atau kementerian/satker/kabupaten lain di luar yang sedang aktif,
 WAJIB panggil tool cari_anggaran. Kalau tidak ditemukan, katakan jujur "tidak ditemukan" -- jangan mengarang.`;
 
   const conversation: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
@@ -71,7 +95,7 @@ WAJIB panggil tool cari_anggaran. Kalau tidak ditemukan, katakan jujur "tidak di
         body: JSON.stringify({
           model: GROQ_MODEL,
           messages: conversation,
-          tools: [toolDefinition(scopeKdsatker)],
+          tools: [toolDefinition(ds, scopeKdsatker)],
           tool_choice: "auto",
         }),
       });
@@ -86,8 +110,6 @@ WAJIB panggil tool cari_anggaran. Kalau tidak ditemukan, katakan jujur "tidak di
       if (!msg) return NextResponse.json({ error: "Respons Groq tidak dikenali." }, { status: 200 });
 
       if (msg.tool_calls && msg.tool_calls.length > 0) {
-        // Sertakan tool_calls di pesan assistant supaya sesuai format OpenAI-compatible
-        // yang dipakai Groq (dibutuhkan saat mengirim balasan tool berikutnya).
         conversation.push({ role: "assistant", content: msg.content || "", tool_calls: msg.tool_calls } as unknown as ChatMessage);
         for (const tc of msg.tool_calls) {
           let args: Record<string, unknown> = {};
@@ -96,7 +118,7 @@ WAJIB panggil tool cari_anggaran. Kalau tidak ditemukan, katakan jujur "tidak di
           } catch {
             // biarkan args kosong kalau parsing gagal
           }
-          const hasil = await cariAnggaran(args, scopeKdsatker, tahunAktif);
+          const hasil = await jalankanTool(ds, args, scopeKdsatker, tahunAktif);
           conversation.push({
             role: "tool",
             tool_call_id: tc.id,
@@ -104,7 +126,7 @@ WAJIB panggil tool cari_anggaran. Kalau tidak ditemukan, katakan jujur "tidak di
             content: JSON.stringify(hasil),
           });
         }
-        continue; // panggil lagi Groq dengan hasil tool
+        continue;
       }
 
       return NextResponse.json({ reply: msg.content || "" });

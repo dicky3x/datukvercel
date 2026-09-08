@@ -20,6 +20,47 @@ export type AggRow = {
 
 let cache: AggRow[] | null = null;
 
+export type KategoriRow = {
+  TAHUN: number;
+  KDDEPT: number;
+  NMDEPT: string;
+  KDSATKER: number;
+  NMSATKER: string;
+  PROVINSI: string;
+  KABKOTA: string;
+  KEGIATAN: string;
+  OUTPUT: string;
+  SUBOUTPUT: string;
+  AKUN: string;
+  KATEGORI: string;
+  PAGU: number;
+  REALISASI: number;
+  SISA_PAGU: number;
+  BLOKIR: number;
+  [bulan: string]: number | string;
+};
+
+export type TkdRow = {
+  TAHUN: number;
+  KABKOTA: string;
+  JENIS_BELANJA: string;
+  LABEL_JENIS_BELANJA: string;
+  PAGU: number;
+  REALISASI: number;
+  SISA_PAGU: number;
+  BLOKIR: number;
+  [bulan: string]: number | string;
+};
+
+let cachePrioritas: KategoriRow[] | null = null;
+let cacheStrategis: KategoriRow[] | null = null;
+let cacheTkd: TkdRow[] | null = null;
+
+function readJson<T>(fileName: string): T {
+  const p = path.join(process.cwd(), "data", fileName);
+  return JSON.parse(readFileSync(p, "utf-8")) as T;
+}
+
 /** Data agregat (TAHUN x KDDEPT x KDSATKER x JENIS BELANJA) -- dipakai untuk
  * seluruh KPI & grafik dashboard. Dibuat saat build lewat scripts/prepare-data.mjs,
  * jadi tidak perlu parse ulang CSV mentah di tiap request. */
@@ -42,4 +83,22 @@ export function getSatkerKodeSet(): Set<number> {
 
 export function monthSum(rows: AggRow[]): number[] {
   return BULAN_KOLOM.map((b) => rows.reduce((acc, r) => acc + (Number(r[b]) || 0), 0));
+}
+
+/** Data Prioritas Presiden -- ratusan baris, tidak butuh agregasi build-time. */
+export function getPrioritasData(): KategoriRow[] {
+  if (!cachePrioritas) cachePrioritas = readJson<KategoriRow[]>("prioritas.json");
+  return cachePrioritas;
+}
+
+/** Data Program Strategis -- ratusan baris, tidak butuh agregasi build-time. */
+export function getStrategisData(): KategoriRow[] {
+  if (!cacheStrategis) cacheStrategis = readJson<KategoriRow[]>("strategis.json");
+  return cacheStrategis;
+}
+
+/** Data Transfer ke Daerah (TAHUN x KABKOTA x JENIS BELANJA, kode 61-66 saja). */
+export function getTkdData(): TkdRow[] {
+  if (!cacheTkd) cacheTkd = readJson<TkdRow[]>("tkd.json");
+  return cacheTkd;
 }

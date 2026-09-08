@@ -28,7 +28,7 @@ export type KategoriProyeksi = {
   confidence: number | null;
 };
 
-const BOBOT_TAHUN = [3, 2, 1]; // tahun-1, tahun-2, tahun-3 (semakin baru semakin besar)
+const BOBOT_TAHUN: Record<number, number> = { 1: 0.5, 2: 0.25, 3: 0.125, 4: 0.0625, 5: 0.0625 };
 
 function stdev(arr: number[]): number {
   if (arr.length < 2) return 0;
@@ -37,7 +37,7 @@ function stdev(arr: number[]): number {
   return Math.sqrt(variance);
 }
 
-export function hitungBulanPenuhTerakhir(rowsEntitas: AggRow[], tahun: number): number {
+export function hitungBulanPenuhTerakhir<T extends Record<string, unknown>>(rowsEntitas: T[], tahun: number): number {
   const monthly = BULAN_KOLOM.map((b) => rowsEntitas.reduce((a, r) => a + (Number(r[b]) || 0), 0));
   const now = new Date();
   const bulanKalenderBerjalan = tahun < now.getFullYear() ? 13 : tahun > now.getFullYear() ? 1 : now.getMonth() + 1;
@@ -50,9 +50,42 @@ export function hitungBulanPenuhTerakhir(rowsEntitas: AggRow[], tahun: number): 
 }
 
 /**
+ * Port dari hitung_proyeksi_agregat() di common.py -- proyeksi SATU rate gabungan
+ * (bukan per kategori) untuk entitas terpilih, dipakai oleh halaman Prioritas Presiden,
+ * Program Strategis, dan Dana Transfer ke Daerah (yang datanya cuma tersedia 1 tahun,
+ * jadi proyeksinya mengandalkan histori dari sumber data utama/pagu_realisasi bila ada,
+ * atau fallback ke rerata bulan berjalan kalau histori kosong).
+ */
+export function hitungProyeksiAgregat<T extends { TAHUN: number; PAGU: number; [k: string]: unknown }>(
+  semuaRows: T[],
+  tahun: number,
+  paguY: number,
+  matchEntitas: (r: T) => boolean
+): { bulanan: number[] | null; tahunDipakai: number[] } {
+  let totalRate = new Array(12).fill(0);
+  let totalBobot = 0;
+  const tahunDipakai: number[] = [];
+
+  for (let d = 1; d <= 5; d++) {
+    const thnLalu = tahun - d;
+    const rowsLalu = semuaRows.filter((r) => r.TAHUN === thnLalu && matchEntitas(r));
+    const paguLalu = rowsLalu.reduce((a, r) => a + r.PAGU, 0);
+    if (paguLalu <= 0) continue;
+    const monthlyLalu = BULAN_KOLOM.map((b) => rowsLalu.reduce((a, r) => a + (Number(r[b]) || 0), 0));
+    const bobot = BOBOT_TAHUN[d] ?? 0;
+    totalRate = totalRate.map((v, i) => v + bobot * (monthlyLalu[i] / paguLalu));
+    totalBobot += bobot;
+    tahunDipakai.push(thnLalu);
+  }
+
+  if (totalBobot === 0) return { bulanan: null, tahunDipakai };
+  return { bulanan: totalRate.map((v) => (v / totalBobot) * paguY), tahunDipakai };
+}
+
+/**
  * Hitung proyeksi per kategori (LABEL_JENIS_BELANJA) untuk satu entitas (hasil filter
  * KDDEPT/KDSATKER sesuai sidebar), memakai histori entitas yang SAMA di tahun-tahun
- * sebelumnya (maks 3 tahun ke belakang).
+ * sebelumnya (maks 5 tahun ke belakang).
  */
 export function hitungProyeksiPerKategori(
   semuaRows: AggRow[],
@@ -74,10 +107,10 @@ export function hitungProyeksiPerKategori(
       rowsKategoriIni.reduce((a, r) => a + (Number(r[b]) || 0), 0)
     );
 
-    // Kumpulkan rasio historis (bulan m / pagu tahun itu) dari maks 3 tahun sebelumnya,
-    // untuk entitas & kategori yang sama.
-    const rasioPerTahun: { tahun: number; rasio: number[] }[] = [];
-    for (let d = 1; d <= 3; d++) {
+    // Kumpulkan rasio historis (bulan m / pagu tahun itu) dari maks 5 tahun sebelumnya
+    // (sama seperti hitung_proyeksi_agregat asli), untuk entitas & kategori yang sama.
+    const rasioPerTahun: { tahun: number; d: number; rasio: number[] }[] = [];
+    for (let d = 1; d <= 5; d++) {
       const thnLalu = tahun - d;
       const rowsLalu = semuaRows.filter(
         (r) => r.TAHUN === thnLalu && r.LABEL_JENIS_BELANJA === label && matchEntitas(r)
@@ -86,7 +119,7 @@ export function hitungProyeksiPerKategori(
       const paguLalu = rowsLalu.reduce((a, r) => a + r.PAGU, 0);
       if (paguLalu <= 0) continue;
       const bulananLalu = BULAN_KOLOM.map((b) => rowsLalu.reduce((a, r) => a + (Number(r[b]) || 0), 0));
-      rasioPerTahun.push({ tahun: thnLalu, rasio: bulananLalu.map((v) => v / paguLalu) });
+      rasioPerTahun.push({ tahun: thnLalu, d, rasio: bulananLalu.map((v) => v / paguLalu) });
     }
 
     let bulananHasil: number[];
@@ -103,8 +136,8 @@ export function hitungProyeksiPerKategori(
       const bulananProfil = BULAN_KOLOM.map((_, i) => {
         let totalBobot = 0;
         let totalNilai = 0;
-        rasioPerTahun.forEach((rt, idx) => {
-          const bobot = BOBOT_TAHUN[idx] ?? 1;
+        rasioPerTahun.forEach((rt) => {
+          const bobot = BOBOT_TAHUN[rt.d] ?? 0;
           totalNilai += bobot * rt.rasio[i];
           totalBobot += bobot;
         });

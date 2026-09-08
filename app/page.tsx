@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import LoginForm from "@/components/LoginForm";
+import AuthGate, { Auth } from "@/components/AuthGate";
 import KpiCard from "@/components/KpiCard";
 import { MonthlyBarChart, PaguVsRealisasi, DonutChart, TrendProyeksiChart, ConfidenceBarChart } from "@/components/Charts";
 import ProjectionTable from "@/components/ProjectionTable";
 import EarlyWarning from "@/components/EarlyWarning";
 import ChatBox from "@/components/ChatBox";
 import { rupiah, persen } from "@/lib/format";
-
-type Auth = { role: "super" | "satker"; kdsatker: number | null };
 
 type DashboardData = {
   isSuper: boolean;
@@ -34,17 +32,14 @@ type DashboardData = {
 };
 
 export default function Home() {
-  const [auth, setAuth] = useState<Auth | null | undefined>(undefined);
+  return <AuthGate>{(auth) => <DashboardUtama auth={auth} />}</AuthGate>;
+}
+
+function DashboardUtama({ auth }: { auth: Auth }) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [tahun, setTahun] = useState<number | null>(null);
   const [kddept, setKddept] = useState<number | null | "ALL">(null);
   const [kdsatker, setKdsatker] = useState<number | null | "ALL">(null);
-
-  useEffect(() => {
-    fetch("/api/session")
-      .then((r) => r.json())
-      .then((d) => setAuth(d.auth));
-  }, []);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams();
@@ -53,7 +48,7 @@ export default function Home() {
     if (kdsatker && kdsatker !== "ALL") params.set("kdsatker", String(kdsatker));
     const res = await fetch(`/api/dashboard?${params.toString()}`);
     if (res.status === 401) {
-      setAuth(null);
+      window.location.reload();
       return;
     }
     const d = await res.json();
@@ -62,19 +57,12 @@ export default function Home() {
   }, [tahun, kddept, kdsatker]);
 
   useEffect(() => {
-    if (auth) load();
-  }, [auth, load]);
+    load();
+  }, [load]);
 
-  if (auth === undefined) return null;
-  if (auth === null) return <LoginForm onSuccess={() => window.location.reload()} />;
   if (!data) return <div className="p-8 text-slate-500">Memuat data...</div>;
 
   const isSuper = data.isSuper;
-
-  async function logout() {
-    await fetch("/api/logout", { method: "POST" });
-    window.location.reload();
-  }
 
   if (data.empty) {
     return (
@@ -82,7 +70,6 @@ export default function Home() {
         <p className="text-amber-700 bg-amber-50 rounded-md p-4">
           Tidak ada data untuk entitas ini pada tahun {data.selection.tahun}.
         </p>
-        <button onClick={logout} className="mt-4 text-sm underline">Logout</button>
       </div>
     );
   }
@@ -115,25 +102,9 @@ export default function Home() {
     : "";
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
         {/* Sidebar filter */}
         <aside className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
-            <div className="text-sm">
-              {isSuper ? (
-                <span className="inline-block bg-emerald-50 text-emerald-700 rounded-md px-2 py-1">
-                  👤 Super User
-                </span>
-              ) : (
-                <span className="inline-block bg-emerald-50 text-emerald-700 rounded-md px-2 py-1">
-                  👤 Satker: {String(data.selection.kdsatker).padStart(6, "0")}
-                </span>
-              )}
-            </div>
-            <button onClick={logout} className="text-sm text-slate-500 underline">🚪 Logout</button>
-          </div>
-
           <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
             <h3 className="font-medium text-sm">Filter</h3>
             <div>
@@ -292,7 +263,6 @@ export default function Home() {
 
           <ChatBox ringkasanData={ringkasanUntukAI} tahunAktif={data.selection.tahun} />
         </main>
-      </div>
     </div>
   );
 }
