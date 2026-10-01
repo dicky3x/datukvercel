@@ -7,7 +7,7 @@ import { MonthlyBarChart, PaguVsRealisasi, DonutChart, TrendProyeksiChart, Confi
 import ProjectionTable from "@/components/ProjectionTable";
 import EarlyWarning from "@/components/EarlyWarning";
 import ChatBox from "@/components/ChatBox";
-import ThemeToggle from "@/components/ThemeToggle"; // <-- IMPORT TOMBOL TEMA DI SINI
+import ThemeToggle from "@/components/ThemeToggle";
 import { rupiah, persen } from "@/lib/format";
 
 type DashboardData = {
@@ -103,12 +103,9 @@ function DashboardUtama({ auth }: { auth: Auth }) {
     : "";
 
   return (
-    {/* KUNCI LAYOUT: w-full, max-w-[100vw], dan overflow-x-hidden mengunci halaman agar tidak bisa digeser ke samping */}
-    <div className="w-full max-w-[100vw] overflow-x-hidden mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
-        
+    <div className="w-full max-w-[100vw] overflow-x-hidden mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6" style={{ backgroundColor: "var(--bg-color)", color: "var(--text-color)" }}>
         {/* Sidebar filter */}
         <aside className="space-y-4">
-          {/* Tambahkan var(--bg-color) agar mengikuti warna tema dari CSS jika Tailwind tidak tersetting Dark Mode */}
           <div className="rounded-xl shadow-sm p-4 space-y-3 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
             <h3 className="font-medium text-sm">Filter</h3>
             <div>
@@ -176,7 +173,6 @@ function DashboardUtama({ auth }: { auth: Auth }) {
 
         {/* Main content */}
         <main className="space-y-6 w-full overflow-x-hidden">
-          {/* HEADER DENGAN TOMBOL THEME */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl font-semibold">📊 Dashboard Pagu &amp; Realisasi</h1>
@@ -184,7 +180,6 @@ function DashboardUtama({ auth }: { auth: Auth }) {
                 {data.selection.nmdept} — {data.selection.nmsatker} — Tahun {data.selection.tahun}
               </p>
             </div>
-            {/* TOMBOL DIPANGGIL DI SINI */}
             <ThemeToggle />
           </div>
 
@@ -244,11 +239,10 @@ function DashboardUtama({ auth }: { auth: Auth }) {
             <p className="text-xs opacity-75">Grafik ini menampilkan realisasi tiap bulan (bukan kumulatif).</p>
           </div>
 
-          {/* KUNCI TABEL: overflow-x-auto ditambahkan di tabel ini */}
           <div className="rounded-xl shadow-sm p-4 border w-full overflow-x-auto" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
             <h3 className="font-medium mb-3">Realisasi Bulanan per Jenis Belanja</h3>
             {proyeksi && (
-              <div className="table-responsive">
+              <div className="min-w-[600px]">
                 <ProjectionTable kategori={proyeksi.kategori} bulanPenuhTerakhirTampilan={bulanPenuhTerakhirTampilan} />
               </div>
             )}

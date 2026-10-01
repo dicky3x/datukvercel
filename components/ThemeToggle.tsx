@@ -6,6 +6,7 @@ export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
+    // Mengecek apakah sebelumnya user sudah memilih mode gelap
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
       document.body.classList.add("dark-theme");
@@ -29,13 +30,14 @@ export default function ThemeToggle() {
     <button 
       onClick={toggleTheme}
       style={{
-        padding: "10px 20px",
+        padding: "8px 16px",
         borderRadius: "8px",
-        backgroundColor: "var(--btn-bg)",
-        color: "var(--text-color)",
-        border: "1px solid var(--border-color)",
+        backgroundColor: "var(--btn-bg, #f1f5f9)",
+        color: "var(--text-color, #0f172a)",
+        border: "1px solid var(--border-color, #cbd5e1)",
         cursor: "pointer",
         fontWeight: "bold",
+        fontSize: "14px",
         transition: "all 0.3s ease"
       }}
     >
