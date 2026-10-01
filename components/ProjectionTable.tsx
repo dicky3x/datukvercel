@@ -39,7 +39,7 @@ export default function ProjectionTable({
             <td className="text-right p-2">{rupiah(paguTotal)}</td>
           </tr>
           {BULAN_KOLOM.map((b, i) => (
-            <tr key={b} className={"border-t " + (isBulanProyeksi(i) ? "bg-amber-50" : "")}>
+            <tr key={b} className={"border-t " + (isBulanProyeksi(i) ? "bg-amber-50 text-slate-900" : "")}>
               <td className="p-2 sticky left-0 bg-inherit">{b}</td>
               {kategori.map((k) => (
                 <td key={k.label} className="text-right p-2">{rupiah(k.bulanan[i])}</td>
@@ -66,14 +66,14 @@ export default function ProjectionTable({
             })}
             <td className="text-right p-2">{paguTotal ? persen((totalAktualSemua / paguTotal) * 100) : "-"}</td>
           </tr>
-          <tr className="border-t bg-amber-50">
+          <tr className="border-t bg-amber-50 text-slate-900">
             <td className="p-2 sticky left-0 bg-amber-50">Total Realisasi + Proyeksi (Rp)</td>
             {kategori.map((k) => (
               <td key={k.label} className="text-right p-2">{rupiah(k.bulanan.reduce((a, b) => a + b, 0))}</td>
             ))}
             <td className="text-right p-2 font-semibold">{rupiah(totalProyeksiSemua)}</td>
           </tr>
-          <tr className="border-t bg-amber-50">
+          <tr className="border-t bg-amber-50 text-slate-900">
             <td className="p-2 sticky left-0 bg-amber-50">Total Realisasi + Proyeksi (%)</td>
             {kategori.map((k) => {
               const totalK = k.bulanan.reduce((a, b) => a + b, 0);
