@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   /* Mode Terang */
   --bg-color: #ffffff;
@@ -49,23 +51,36 @@ body {
   border-radius: 8px;
 }
 
-table {
+.table-responsive table {
   width: 100%;
   min-width: 800px; /* Menjaga kolom tabel tetap lebar meski di HP */
   border-collapse: collapse;
 }
 
-th, td {
+.table-responsive th, .table-responsive td {
   border-bottom: 1px solid var(--border-color);
   padding: 16px;
   text-align: left;
 }
 
-th {
+.table-responsive th {
   background-color: var(--table-header-bg);
   font-weight: 600;
 }
 
-tr:hover {
+.table-responsive tr:hover {
   background-color: var(--table-row-hover);
 }
+
+/* Penyesuaian mode gelap untuk kelas Tailwind yang dipakai komponen */
+.dark-theme .bg-white { background-color: var(--btn-bg); }
+.dark-theme .bg-slate-50,
+.dark-theme .bg-slate-100 { background-color: var(--table-header-bg); }
+.dark-theme .bg-slate-900 { background-color: #475569; }
+.dark-theme .text-slate-800 { color: var(--text-color); }
+.dark-theme .text-slate-600,
+.dark-theme .text-slate-500,
+.dark-theme .text-slate-400 { color: #94a3b8; }
+.dark-theme .border-slate-100,
+.dark-theme .border-b,
+.dark-theme .border { border-color: var(--border-color); }
