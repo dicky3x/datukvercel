@@ -7,7 +7,7 @@ import { MonthlyBarChart, PaguVsRealisasi, DonutChart, TrendProyeksiChart, Confi
 import ProjectionTable from "@/components/ProjectionTable";
 import EarlyWarning from "@/components/EarlyWarning";
 import ChatBox from "@/components/ChatBox";
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/ThemeToggle"; // Tombol Dark Mode
 import { rupiah, persen } from "@/lib/format";
 
 type DashboardData = {
@@ -103,16 +103,17 @@ function DashboardUtama({ auth }: { auth: Auth }) {
     : "";
 
   return (
-    <div className="w-full max-w-[100vw] overflow-x-hidden mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6" style={{ backgroundColor: "var(--bg-color)", color: "var(--text-color)" }}>
+    // PERBAIKAN 1: Tambahkan overflow-x-hidden di container paling luar agar tidak geser ke samping
+    <div className="max-w-7xl mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 overflow-x-hidden">
+        
         {/* Sidebar filter */}
         <aside className="space-y-4">
-          <div className="rounded-xl shadow-sm p-4 space-y-3 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+          <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
             <h3 className="font-medium text-sm">Filter</h3>
             <div>
-              <label className="block text-xs opacity-75 mb-1">Tahun</label>
+              <label className="block text-xs text-slate-500 mb-1">Tahun</label>
               <select
                 className="w-full border rounded-md px-2 py-1.5 text-sm"
-                style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)", color: "var(--text-color)" }}
                 value={tahun ?? data.selection.tahun}
                 onChange={(e) => {
                   setTahun(parseInt(e.target.value, 10));
@@ -129,10 +130,9 @@ function DashboardUtama({ auth }: { auth: Auth }) {
             {isSuper && (
               <>
                 <div>
-                  <label className="block text-xs opacity-75 mb-1">Kementerian/Lembaga</label>
+                  <label className="block text-xs text-slate-500 mb-1">Kementerian/Lembaga</label>
                   <select
                     className="w-full border rounded-md px-2 py-1.5 text-sm"
-                    style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)", color: "var(--text-color)" }}
                     value={kddept ?? "ALL"}
                     onChange={(e) => {
                       const v = e.target.value === "ALL" ? "ALL" : parseInt(e.target.value, 10);
@@ -147,10 +147,9 @@ function DashboardUtama({ auth }: { auth: Auth }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs opacity-75 mb-1">Satuan Kerja</label>
+                  <label className="block text-xs text-slate-500 mb-1">Satuan Kerja</label>
                   <select
                     className="w-full border rounded-md px-2 py-1.5 text-sm"
-                    style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)", color: "var(--text-color)" }}
                     value={kdsatker ?? "ALL"}
                     onChange={(e) => setKdsatker(e.target.value === "ALL" ? "ALL" : parseInt(e.target.value, 10))}
                   >
@@ -163,7 +162,7 @@ function DashboardUtama({ auth }: { auth: Auth }) {
               </>
             )}
             {!isSuper && (
-              <div className="text-xs opacity-75 space-y-1">
+              <div className="text-xs text-slate-500 space-y-1">
                 <p>Satker: <b>{data.selection.nmsatker}</b></p>
                 <p>Kementerian/Lembaga: {data.selection.nmdept}</p>
               </div>
@@ -172,14 +171,15 @@ function DashboardUtama({ auth }: { auth: Auth }) {
         </aside>
 
         {/* Main content */}
-        <main className="space-y-6 w-full overflow-x-hidden">
+        <main className="space-y-6 min-w-0">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold">📊 Dashboard Pagu &amp; Realisasi</h1>
-              <p className="text-sm opacity-75">
+              <h1 className="text-2xl font-semibold">📊 Dashboard Pagu &amp; Realisasi Satker</h1>
+              <p className="text-sm text-slate-500">
                 {data.selection.nmdept} — {data.selection.nmsatker} — Tahun {data.selection.tahun}
               </p>
             </div>
+            {/* Tombol Dark Mode disisipkan di sini dengan aman */}
             <ThemeToggle />
           </div>
 
@@ -197,18 +197,18 @@ function DashboardUtama({ auth }: { auth: Auth }) {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            <div className="rounded-xl shadow-sm p-4 lg:col-span-3 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+            <div className="bg-white rounded-xl shadow-sm p-4 lg:col-span-3">
               <h3 className="font-medium mb-2">Realisasi per Bulan</h3>
               {monthly && <MonthlyBarChart monthly={monthly} />}
             </div>
-            <div className="rounded-xl shadow-sm p-4 lg:col-span-2 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+            <div className="bg-white rounded-xl shadow-sm p-4 lg:col-span-2">
               <h3 className="font-medium mb-2">Pagu vs Realisasi</h3>
               {kpi && <PaguVsRealisasi pagu={kpi.pagu} realisasi={kpi.realisasi} />}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-xl shadow-sm p-4 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+            <div className="bg-white rounded-xl shadow-sm p-4">
               <h3 className="font-medium mb-2">Realisasi vs Sisa Pagu</h3>
               {kpi && (
                 <DonutChart
@@ -219,7 +219,7 @@ function DashboardUtama({ auth }: { auth: Auth }) {
                 />
               )}
             </div>
-            <div className="rounded-xl shadow-sm p-4 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+            <div className="bg-white rounded-xl shadow-sm p-4">
               <h3 className="font-medium mb-2">Realisasi per Jenis Belanja</h3>
               {jenisBelanja && (
                 <DonutChart data={jenisBelanja.map((j) => ({ name: j.label, value: j.realisasi }))} />
@@ -227,7 +227,7 @@ function DashboardUtama({ auth }: { auth: Auth }) {
             </div>
           </div>
 
-          <div className="rounded-xl shadow-sm p-4 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+          <div className="bg-white rounded-xl shadow-sm p-4">
             <h3 className="font-medium mb-2">Tren &amp; Proyeksi Realisasi hingga Akhir Tahun</h3>
             {monthly && proyeksi && (
               <TrendProyeksiChart
@@ -236,20 +236,21 @@ function DashboardUtama({ auth }: { auth: Auth }) {
                 bulanPenuhTerakhirTampilan={bulanPenuhTerakhirTampilan}
               />
             )}
-            <p className="text-xs opacity-75">Grafik ini menampilkan realisasi tiap bulan (bukan kumulatif).</p>
+            <p className="text-xs text-slate-500">Grafik ini menampilkan realisasi tiap bulan (bukan kumulatif).</p>
           </div>
 
-          <div className="rounded-xl shadow-sm p-4 border w-full overflow-x-auto" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
-            <h3 className="font-medium mb-3">Realisasi Bulanan per Jenis Belanja</h3>
+          {/* PERBAIKAN 2: Tambahkan overflow-x-auto agar tabel bisa digeser HANYA di area ini */}
+          <div className="bg-white rounded-xl shadow-sm p-4 overflow-x-auto">
+            <h3 className="font-medium mb-3 whitespace-nowrap">Realisasi Bulanan per Jenis Belanja</h3>
             {proyeksi && (
-              <div className="min-w-[600px]">
+              <div className="min-w-[700px]">
                 <ProjectionTable kategori={proyeksi.kategori} bulanPenuhTerakhirTampilan={bulanPenuhTerakhirTampilan} />
               </div>
             )}
           </div>
 
           {proyeksi && proyeksi.kategori.some((k) => k.confidence !== null) && (
-            <div className="rounded-xl shadow-sm p-4 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+            <div className="bg-white rounded-xl shadow-sm p-4">
               <h3 className="font-medium mb-2">Skor Keyakinan Proyeksi per Jenis Belanja</h3>
               <ConfidenceBarChart
                 data={proyeksi.kategori
@@ -259,7 +260,7 @@ function DashboardUtama({ auth }: { auth: Auth }) {
             </div>
           )}
 
-          <div className="rounded-xl shadow-sm p-4 border" style={{ backgroundColor: "var(--bg-color)", borderColor: "var(--border-color)" }}>
+          <div className="bg-white rounded-xl shadow-sm p-4">
             <h3 className="font-medium mb-3">⚠️ Early Warning</h3>
             {earlyWarning && (
               <EarlyWarning
